@@ -36,4 +36,5 @@ void Relay::trigger(PinStatus trigger) {
 void Relay::toggle() {
     m_state = m_state ? LOW : HIGH;
     digitalWrite(m_relayPin, m_state);
+    Serial.println("Toggled");
 }
