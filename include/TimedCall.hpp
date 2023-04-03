@@ -20,16 +20,45 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#pragma once
+
 #include <Arduino.h>
-#include "Relay.hpp"
-#include "TimedCall.hpp"
+#include <avr/interrupt.h>
 
-void setup() {
-    Serial.begin(115200);
-    Timed::initializeClock(3000);
-    Timed::startClock();
-}
+class Timed {
+    public:
+        
+        Timed() = delete;
 
-void loop() {
-    
-}
+        ~Timed() = delete;
+
+        Timed(const Timed& other) = delete;
+
+        Timed(Timed&& other) = delete;
+
+        static void initializeClock(unsigned int milliseconds);
+
+        static void startClock();
+
+        static void stopClock();
+
+        static void resetClock();
+
+        static void addCallback(void *func);
+
+        static bool check();
+
+        static void setInterrupt();
+
+        static void clearInterrupt();
+
+    private:
+        
+        static void *m_function;
+
+        volatile static bool m_interruptHit;
+
+        static unsigned int m_numberRepeat;
+
+        static unsigned int m_targetRepeats;
+};
