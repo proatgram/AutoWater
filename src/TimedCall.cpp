@@ -22,7 +22,7 @@ SOFTWARE.
 
 #include "TimedCall.hpp"
 
-void *Timed::m_function = nullptr;
+void (*Timed::m_function)() = nullptr;
 
 
 volatile bool Timed::m_interruptHit = false;
@@ -32,10 +32,15 @@ unsigned int Timed::m_numberRepeat = 0;
 unsigned int Timed::m_targetRepeats = 0;
 
 void Timed::initializeClock(unsigned int milliseconds) {
+    // Turns off interrupts to configure them.
     cli();
 
     // Sets the desired clock / oscillator to use
     // for the RTC
+    // 0x00 Internal 32768 Hz
+    // 0x01 Internal 1024 Hz
+    // 0x02 32768 Mz from XOSC32K or from external clock from TOSC1
+    // 0x03 External clock from EXTCLK pin
     // See 22.4.1.1
     RTC.CLKSEL = 0x00;
     
@@ -50,9 +55,9 @@ void Timed::initializeClock(unsigned int milliseconds) {
     // See 22.13.3
     RTC.INTCTRL = 0x02;
     
-    Serial.println((1024 / (256 * (1000.0 / milliseconds))) - 1);
-
-    uint16_t targetCompareValue = static_cast<uint16_t>((1024 / (256 * (1000.0 / milliseconds))) - 1);
+    // Clock 0 in RTC.CLKSEL is 32,768Mz
+    // Prescalar of 256
+    uint16_t targetCompareValue = static_cast<uint16_t>((32768 / (256 * (1000.0 / milliseconds))) - 1);
 
     Serial.println(targetCompareValue);
 
@@ -79,24 +84,31 @@ void Timed::stopClock() {
 }
 
 void Timed::resetClock() {
-
+    // Sets the interrupt clear bit in the interrupt flags register
     RTC.INTFLAGS |= 0x02;
+
+    // Resets the count
     RTC.CNT = 0;
 }
 
-void Timed::addCallback(void *func) {
+void Timed::addCallback(void (*func)()) {
     m_function = func;
 }
 
 bool Timed::check() {
-    if (m_targetRepeats == m_numberRepeat) {
-        if (m_function != nullptr) {
-            ((void(*)())m_function)();
+    if (m_interruptHit) {
+        if (m_targetRepeats == m_numberRepeat) {
+            if (m_function != nullptr) {
+                m_function();
+            }
+            clearInterrupt();
+            resetClock();
+            return true;
         }
-        return true;
+        clearInterrupt();
+        resetClock();
+        m_numberRepeat++;
     }
-    resetClock();
-    m_numberRepeat++;
     return false;
 }
 

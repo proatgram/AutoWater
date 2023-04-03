@@ -44,7 +44,7 @@ class Timed {
 
         static void resetClock();
 
-        static void addCallback(void *func);
+        static void addCallback(void (*func)());
 
         static bool check();
 
@@ -54,7 +54,7 @@ class Timed {
 
     private:
         
-        static void *m_function;
+        static void (*m_function)();
 
         volatile static bool m_interruptHit;
 

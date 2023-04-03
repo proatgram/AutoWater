@@ -24,12 +24,18 @@ SOFTWARE.
 #include "Relay.hpp"
 #include "TimedCall.hpp"
 
+void callback() {
+    Serial.println("Callback Function");
+    Timed::startClock();
+}
+
 void setup() {
     Serial.begin(115200);
     Timed::initializeClock(3000);
     Timed::startClock();
+    Timed::addCallback(&callback);
 }
 
 void loop() {
-    
+    Timed::check();
 }
