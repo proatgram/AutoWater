@@ -26,7 +26,7 @@ SOFTWARE.
 
 void callback() {
     Serial.println("Callback Function");
-    Timed::startClock();
+    Serial.println(millis() / 1000);
 }
 
 void setup() {
@@ -37,5 +37,7 @@ void setup() {
 }
 
 void loop() {
-    Timed::check();
+    if(Timed::check()) {
+        Timed::startClock();
+    }
 }

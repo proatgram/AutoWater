@@ -27,9 +27,7 @@ void (*Timed::m_function)() = nullptr;
 
 volatile bool Timed::m_interruptHit = false;
 
-unsigned int Timed::m_numberRepeat = 0;
-
-unsigned int Timed::m_targetRepeats = 0;
+unsigned long long int Timed::m_targetNumber = 0;
 
 void Timed::initializeClock(unsigned int milliseconds) {
     // Turns off interrupts to configure them.
@@ -57,13 +55,17 @@ void Timed::initializeClock(unsigned int milliseconds) {
     
     // Clock 0 in RTC.CLKSEL is 32,768Mz
     // Prescalar of 256
-    uint16_t targetCompareValue = static_cast<uint16_t>((32768 / (256 * (1000.0 / milliseconds))) - 1);
+    // Max seconds that can store is 512 (512000 milliseconds)
+    unsigned long long int targetCompareValue = static_cast<uint16_t>((32768 / (256 * (1000.0 / milliseconds))) - 1);
 
-    Serial.println(targetCompareValue);
-
-    // Sets the Compare Match (CMP) value
-    RTC.CMP = targetCompareValue;
-
+    if (targetCompareValue < 65535) {
+        // Sets the Compare Match (CMP) value
+        RTC.CMP = targetCompareValue;
+        sei();
+        return;
+    }
+    m_targetNumber = targetCompareValue - 65535;
+    RTC.CMP = 65535;
     sei();
 }
 
@@ -97,7 +99,7 @@ void Timed::addCallback(void (*func)()) {
 
 bool Timed::check() {
     if (m_interruptHit) {
-        if (m_targetRepeats == m_numberRepeat) {
+        if (m_targetNumber == 0) {
             if (m_function != nullptr) {
                 m_function();
             }
@@ -107,7 +109,14 @@ bool Timed::check() {
         }
         clearInterrupt();
         resetClock();
-        m_numberRepeat++;
+        if (m_targetNumber <= 65535) {
+            RTC.CMP = static_cast<uint16_t>(m_targetNumber);
+            startClock();
+            return false;
+        }
+        RTC.CMP = 65535;
+        m_targetNumber -= 65535;
+        startClock();
     }
     return false;
 }
@@ -121,7 +130,6 @@ void Timed::clearInterrupt() {
 }
 
 ISR(RTC_CNT_vect) {
-    Serial.println("Counter Inturrupt");
     Timed::setInterrupt();
     Timed::stopClock();
 }

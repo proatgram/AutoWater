@@ -58,7 +58,5 @@ class Timed {
 
         volatile static bool m_interruptHit;
 
-        static unsigned int m_numberRepeat;
-
-        static unsigned int m_targetRepeats;
+        static unsigned long long int m_targetNumber;
 };
